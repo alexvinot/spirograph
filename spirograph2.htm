@@ -1,0 +1,224 @@
+<html>
+<head>
+<script type="text/javascript">
+function incrementColor (color, step)
+{
+    var colorToInt = parseInt(color.substr(1), 16), nstep = parseInt(step);
+    if(!isNaN(colorToInt) && !isNaN(nstep))
+    {
+        colorToInt += nstep;
+        var ncolor = colorToInt.toString(16);
+        ncolor = '#' + (new Array(7-ncolor.length).join(0)) + ncolor;
+        if(/^#[0-9a-f]{6}$/i.test(ncolor)) return ncolor;
+    }
+    return color;
+};
+
+var sides   = 4;
+var ds      = .00004;
+var rs      = .07;
+var mins    = sides - rs;
+var maxs    = sides + rs;
+
+var max     = 900;
+var cx      = max/2;
+var colrs   = ['#880000','#ff8800','#00ff00','#0000ff','#ff0000','#ff00ff','#ff0088','#880088'];
+var colr1   = colrs[Math.floor(Math.random() * colrs.length)];
+var t       = 1; // seems to be the same - since it takes a bit longer than this to draw it
+var shapes  = 'lines';
+var dx      = 5;
+var c,ctx;
+
+var timer;
+
+function init()
+{
+   c   = document.getElementById("cv");
+   ctx = c.getContext("2d");
+}
+
+function spiro()
+{
+    if (sides > maxs || sides < mins) ds = -ds;
+    sides += ds;
+
+    var j   = 2*Math.PI / sides - .003;
+
+    var r   = cx;
+    var p   = 0;
+    var x1,x2,y1,y2,x3,y3 = 0;
+
+    var hue = colr1;
+
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    for (i=0; i<=max*5; i+=dx)
+    {
+        x3  = x2;
+        y3  = y2;
+        x2  = x1;
+        y2  = y1;
+
+        p   = p + j;
+        r  -= .5;
+        x1  = cx - r * Math.cos(p);
+        y1  = cx - r * Math.sin(p);
+
+        hue = incrementColor(hue, 64);
+
+        ctx.beginPath();
+        ctx.strokeStyle = hue;
+        switch (shapes)
+        {
+           case 'lines':
+               ctx.moveTo(x2,y2);
+               ctx.lineTo(x1,y1);
+           break;
+
+           case 'circles':
+               dist = Math.sqrt((x1-cx)*(x1-cx) + (y1-cx)*(y1-cx));
+               radius = dist/4;
+               ctx.arc(x1, y1, radius, 0, 2 * Math.PI, false);
+           break;
+
+           case 'dots':
+               ctx.moveTo(x1,y1);
+               ctx.lineTo(x1+1,y1+1);
+           break;
+
+           case 'clusters':
+               dist     = Math.sqrt((x1-cx)*(x1-cx) + (y1-cx)*(y1-cx));
+               numdots  = 32; // dist / 16 + 1;
+               radius = dist / 4;
+               p2 = p;
+               for (k=1; k<=numdots; k++)
+               {
+                  x2  = x1;
+                  y2  = y1;
+                  p2 += .8;
+                  radius -= 16;
+                  offx = radius * Math.cos(p2);
+                  offy = radius * Math.sin(p2);
+                  x1 += offx;
+                  y1 += offy;
+//                  ctx.moveTo(x2, y2);
+//                  ctx.lineTo(x1, y1);
+
+                  ctx.moveTo(x1, y1);
+                  ctx.lineTo(x1 + 1,  y1 + 1);
+               }
+           break;
+
+           case 'wildclusters':
+               numdots  = Math.random() * 5 + 1;
+               dist     = Math.sqrt((x1-cx)*(x1-cx) + (y1-cx)*(y1-cx));
+               radius = dist/4;
+               for (k=1; k<=numdots; k++)
+               {
+                  x2  = x1;
+                  y2  = y1;
+                  offx = Math.random() * radius - radius/2;
+                  offy = Math.random() * radius - radius/2;
+                  x1 += offx;
+                  y1 += offy;
+                  // ctx.moveTo(x2,y2);
+                  ctx.lineTo(x1,y1);
+                  //ctx.moveTo(x1,      y1);
+//                  ctx.lineTo(x1 + 1,  y1 + 1);
+               }
+           break;
+
+           case 'oldlines':
+               ctx.moveTo(x3,y3);
+               ctx.lineTo(x1,y1);
+           break;
+
+           case 'randlines':
+               radius = 9;
+               offx = Math.random() * radius - radius/2;
+               offy = Math.random() * radius - radius/2;
+               x1 += offx;
+               y1 += offy;
+               ctx.moveTo(x2,y2);
+               ctx.lineTo(x1, y1);
+           break;
+        }
+
+        ctx.stroke();
+    }
+
+    timer = window.setTimeout("spiro()",t);
+}
+
+function letitbegin()
+{
+   sides = Number(document.getElementById('sides').value);
+   mins  = sides - rs;
+   maxs  = sides + rs;
+   sides = mins;
+
+
+
+   switch (true)
+   {
+      case document.getElementById("circles").checked:
+         shapes = 'circles';
+      break;
+
+      case document.getElementById("dots").checked:
+         shapes = 'dots';
+      break;
+
+      case document.getElementById("clusters").checked:
+         shapes = 'clusters';
+      break;
+
+      case document.getElementById("oldlines").checked:
+         shapes = 'oldlines';
+      break;
+
+      case document.getElementById("randlines").checked:
+         shapes = 'randlines';
+      break;
+
+      default:
+         shapes = 'lines';
+   }
+
+   ds = Number(document.getElementById('speed').value)/100000;
+
+   colr1 = colrs[Math.floor(Math.random() * colrs.length)];
+   timer = window.setTimeout("spiro()",t);
+
+}
+
+function pause()
+{
+   window.clearTimeout(timer);
+}
+
+function resume()
+{
+   timer = window.setTimeout("spiro()",t);
+}
+
+</script>
+</head>
+<body onload="init();">
+<center>
+number of sides:
+<input type="text" id="sides" value="4" size="3">
+ speed <input type="text" id="speed" value="4" size="3">
+<input type="radio" id="lines" name="shapes" value="lines" checked="checked"> lines
+<input type="radio" id="circles" name="shapes" value="circles"> circles
+<input type="radio" id="dots" name="shapes" value="dots"> dots
+<input type="radio" id="clusters" name="shapes" value="clusters"> clusters
+<input type="radio" id="oldlines" name="shapes" value="oldlines"> skip lines
+<input type="radio" id="randlines" name="shapes" value="randlines"> hay stack
+<input type="button" value="Ok" onclick="letitbegin();">
+<div align="center" style="position: relative; width:900px; height:900px; top:20px;">
+<div style="position: absolute; left:0px; top:0px;"><canvas id="cv" name="cv" width="900" height="900" onmousedown="pause();" onmouseup="resume();"></canvas></div>
+</div>
+</center>
+</body>
+</html>
